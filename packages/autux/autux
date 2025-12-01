@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 # Autux - Auto-Termux Custom Name-Space
 # A tool for customizing your Termux namespace
 
