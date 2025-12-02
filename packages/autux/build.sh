@@ -7,6 +7,7 @@ TERMUX_PKG_SKIP_SRC_EXTRACT=true
 TERMUX_PKG_PLATFORM_INDEPENDENT=true
 TERMUX_PKG_BUILD_IN_SRC=true
 
-termux_step_make_install() {
-    install -Dm755 "$TERMUX_PKG_BUILDER_DIR/autux" "$TERMUX_PREFIX/bin/autux"
-}
+# TODO: Add install step once source logic is implemented
+# termux_step_make_install() {
+#     install -Dm755 "$TERMUX_PKG_BUILDER_DIR/autux" "$TERMUX_PREFIX/bin/autux"
+# }
