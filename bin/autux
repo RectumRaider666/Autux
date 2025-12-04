@@ -1,0 +1,312 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+# <!-- [SS-0]: Autux Main Dispatcher ----->
+# /1.1/ Standard Text Blocks
+VERSION=$(cat << 'EOF'
+Version: '0.1.25'
+Edition: 'Adb'
+Release: 'Pre-Alpha'
+Lead Developer: 'RectumRaider666'
+Description: 'Android NameSpace Utility Dispatcher'
+EOF
+)
+
+# /1.2/ Usage Block
+USAGE=$(cat << 'EOF'
+autux - Android NameSpace Utility Dispatcher
+    Single -Flags Specify Function (Can Be Used but are NOT Required)
+    Double --Options Change how Specific Functions Behave (MOST Functions Do NOT Require)
+
+In General, To Call Functions Within the Autux NameSpace, Use:
+    autux <function> <*args> <*--options:if any>                # To Call an Autux NameSpace Function Directly
+    autux <-flag> <*args> <*--options:if any>                   # To Cli_Flag Link an Autux NameSpace Function (Can Occasionally Be More Reliable)
+
+Main Functions and Their Expected Args Are :
+    autux tap <x:int> <y:int>                                   # {-t} Simulate a Screen Tap Event at X, Y (Expects $2 to be X and $3 to be Y)
+    autux hold <x:int> <y:int> <d:float>                        # {-h} Simulate a Screen Hold Event at X, Y for D Milliseconds (Expects $2 to be X, $3 to be Y, and $4 to be Duration in Milliseconds)
+    autux swipe <x1:int> <y1:int> <x2:int> <y2:int> <d:int>     # {-s} Simulate a Screen Swipe Event at X1, Y1 to X2, Y2 for D Milliseconds (Expexts $2 to be X1, $3 to be Y1, $4 to be X2, $5 to be Y2, and $6 to be Duration in Milliseconds)
+    autux taprec <d:str> <f:str> <t:int>                        # {-tr} Start a Macro Recording Session (No Expectations, $2 is for Storage Directory, $3 is for FileName, $4 is for Timed Sessions in Seconds) ~ Android-Pathing
+    autux openFile <file:str>                                   # {-of} Open the linked File if Exsists (Expects $2 to Link to a Valid File Address) ~ Termux-Pathing
+    autux openUrl <url:str>                                     # {-ou} Open the Default Browser App to the Specified Url (Expects $2 to be a Valid Url)
+    autux openApp <app:str>                                     # {-oa} Open to a Device Application Using the App's ComLink (Expects $2 to be a Valid Installed Apps Android ComName)
+    autux capture <d:str>                                       # {-cap} Capture a Screenshot.png (Optionally-Expects $2 to be a Valid OutPut Directory) ~ Android-Pathing
+    autux record <d:str>                                        # {-rec} Begin ScreenRecording in the Background, Use Ctrl+C to interrupt or autux kill -rec to Stop (Optionally-Expects $2 to be a Valid Directory) ~ Android-Pathing
+    autux listen <d:str>                                        # {-lsn} Begin Audio Recording in the Background, Use Ctrl+C to interrupt or autux kill -lsn to Stop (Optionally-Expects $2 to be a Valid Directory) ~ Android-Pathing
+    autux kill <pid_file:str>                                   # {-k} Kills a Background Service via Generated Pid File (Expects $2 to be a Valid Address to a Valid <file>.pid) ~ Termux-Pathing
+    autux text <txt:str>                                        # {-x} Inserts Text at the Cursor (Expects $2 to be any Valid String)
+    autux msg <msg:str>                                         # {-m} Display a Quick Mesaage In The Bottom-Middle of the Screen (Expects $2 to be a Valid String Message)
+    autux coms                                                  # {-c} Displays the ComNames for All Installed Applications (No Extra Expectations)
+    autux pips                                                  # {-p} Displays Installed Python Library & Version (Optionally-Expects $2 to be a Path to a Target Python Binary/VenV, Defaults to Environments First PATHed Python Binary)
+    autux npms <d:int>                                          # {-np} Displays Installed Node Packages & Version (Optionally-Expects $2 to be a Valid Depth Integer, Defaults to TopLevel-0)
+    autux gradles                                               # {-gd} Displays Installed Gradle Packages & Version (No Extra Expectations)
+    autux mavens <d:int>                                        # {-mv} Displays Installed Maven Packages & Version (Optionally-Expects $2 to be a Valid Depth Integer, Defaults to TopLevel-1)
+    autux lock                                                  # {-l} Prevent the Device from Sleeping (No Extra Expectations)
+    autux unlock                                                # {-ul} Allow the Device to Sleep (No Extra Expectations)
+    autux notify <title:str> <content:str>                      # {-n} Create a Persistant Push Notification (No Extra Expectations) [Requires Termux-Api]
+    autux volume <source:str> <value:int>                       # {-vol} Change Current Volume Settings (Expects $2 to be Source {ie: media, system, notifications}, and $3 To be a Valid Volume Setting {ie: 0-10}) [Requires Termux-Api]
+    autux battery                                               # {-b} Display Detailed Battery Information (No Extra Expectations) [Requires Termux-Api]
+    autux help                                                  # {--h} Display This Usage Quick-Message (No Extra Expectations)
+    autux version                                               # {--v} Display The Currently Installed Autux Version and Edition (No Extra Expectations)
+    autux wiki                                                  # {--w} Opens The Autux Repository GitHub-Wikis for Indepth Documentations (No Extra Expectations)
+EOF
+)
+
+# /1.3/ Console Color Prints
+R="\033[0m"
+RED="\033[1;31m"
+GRN="\033[1;32m"
+YLW="\033[1;33m"
+BLU="\033[1;34m"
+
+# /1.4/ Debugging Prints
+error(){
+    for txt in "$@"; do
+        echo -e "${RED}[ERROR]: $txt${R}\n"; sleep 1
+    done
+    exit 1
+}
+
+warn(){
+    for txt in "$@"; do
+        echo -e "${YLW}[WARN]: $txt${R}\n"; sleep 0.5
+    done
+}
+
+info(){
+    for txt in "$@"; do
+        echo -e "${BLU}[INFO]: $txt${R}\n"; sleep 0.25
+    done
+}
+
+okay(){
+    for txt in "$@"; do
+        echo -e "${GRN}[OKAY]: $txt${R}\n"; sleep 0.25
+    done
+}
+
+now(){
+    echo $(( $(date +%s%N) / 1000000 ))
+}
+
+# /2.0/ The Main Logic
+case $1 in
+    # /2.1/ autux tap <x> <y> (expects $2-$3)
+    -t | tap)
+        shift
+        adb shell input tap "$1" "$2" || error "Failed to Adb Input Tap"
+        ;;
+
+    # /2.2/ autux hold <x> <y> <d> (expects $2-$4)
+    -h | hold)
+        shift
+        adb shell input swipe "$1" "$2" "$1" "$2" "$3" || error "Failed to Adb Input Hold"
+        ;;
+
+    # /2.3/ autux swipe <x1> <y1> <x2 <y2> <d> (expects $2-$6)
+    -s | swipe)
+        shift
+        adb shell input swipe "$1" "$2" "$3" "$4" "$5" || error "Failed to Adb Input Swipe"
+        ;;
+
+    # /2.4/ autux taprec <d:str> <f:str> <t:int>
+    -tr | taprec)
+        shift
+        d=; f=; t=
+        [ -n "$1" ] && d="-d" && d2="$1"
+        [ -n "$2" ] && f="-f" && f2="$2"
+        [ -n "$3" ] && t="-t" && t2="$3"
+        python3 "$HOME/.local/bin/taprec.py" ${d:+$d "$d2"} ${f:+$f "$f2"} ${t:+$t "$t2"} || error "Failed to Properly Execute TapRec Python Binary"
+        ;;
+
+    # /2.5/ autux openFile <*arg> (expects $2)
+    -of | openFile)
+        shift
+        termux-open "$1" || error "Failed to Open File $1"
+        ;;
+
+    # /2.6/ autux openUrl <*arg> (expects $2)
+    -ou | openUrl)
+        shift
+        termux-open-url "$1" || error "Failed to Open Url $1"
+        ;;
+
+    # /2.7/ autux openApp (expects $2)
+    -oa | openApp)
+        shift
+        adb shell monkey -p "$1" 1 || error "Failed to Open Application ComName $1"
+        ;;
+
+    # /2.8/ autux capture <d:str> (optional $2 arg)
+    -cap | capture)
+        shift
+        Dir="${1:-$HOME/Pictures/Screenshots}"
+        if [ ! -d "$Dir" ]; then
+            mkdir -p "$Dir" || error "Failed to Create OutPut Dir"
+        fi
+        F="$(now).png"
+        Dst="$Dir/$F"
+        adb shell screencap "$Dst" || error "Failed to Save Screenshot to $Dst"
+        ;;
+
+    # /2.9/ autux record <d:str> (optional $2 arg)
+    -rec | record)
+        shift
+        Dir="${1:-$HOME/Videos/Screencasts}"
+        if [ ! -d "$Dir" ]; then
+            mkdir -p "$Dir" || error "Failed to Create OutPut Dir '$Dir"
+        fi
+        F="$(now).mp4"
+        Dst="$Dir/$F"
+        adb shell screenrecord "$Dst" || error "Failed to Save Screen Recording to $Dst"
+        ;;
+
+    # /2.10/ autux listen <d:str> (Expects $2 Optional Output Directory)
+# autux listen <d:str> (Expects $2 Optional Output Directory)
+-lsn | 'listen')
+    shift
+    Dir="${1:-/sdcard/Recordings}"
+    adb shell mkdir -p "$Dir" || warn "Failed To Ensure Device Directory '$Dir'"
+    F="$(now).wav"
+    Dst="$Dir/$F"
+    adb shell tinycap "$Dst" &
+    lsn_pid=$!
+    echo "$lsn_pid" > "$AUTUX_SHARE_DIR/listen.pid" || error "Failed To Write Listen PID-File"
+    ;;
+
+    # /2.11/ autux kill (expects $2)
+    -k | kill)
+        shift
+        case "$1" in
+            rec|record|-rec)
+                adb shell kill -l INT screenrecord
+                ;;
+            *)
+                pidfile="$1"
+                if [ ! -f "$pidfile" ]; then
+                    error "No Such PID-File at $pidfile"
+                else
+                    pid=$(cat "$pidfile")
+                    if [[ ! "$pid" =~ ^[0-9]+$ ]]; then
+                        warn "Invalid PID Value in PID-File $pid"
+                    fi
+                    if kill "$pid" >/dev/null 2>&1; then
+                        sleep 0.1
+                    else
+                        warn "Failed to Kill Process $pid (Maybe Already Stopped?)"
+                    fi
+                    rm -f "$pidfile" || error "Failed to Remove PID-File $pidfile"
+                fi
+                ;;
+        esac
+        ;;
+
+    # /2.12/ autux text <txt:str> (Expects $2)
+    -x | text)
+        shift
+        str="$1"
+        str="${str// /%s}" || error "Failed to Rectify String"
+        adb shell input text "$str" || error "Failed to Enter Text: $str"
+        ;;
+
+    # /2.13/ autux msg (expects $2)
+    -m | msg)
+        shift
+        termux-toast "$1" || error "Failed to Toast Message $1"
+        ;;
+
+    # /2.14/ autux coms (expects no args)
+    -c | coms)
+        adb shell pm list packages || error "Failed to Gather ComNames"
+        ;;
+
+    # /2.15/ autux pips <bin:str> (optional $2 arg)
+    -p | pips)
+        shift
+        if [ -n "$1" ]; then
+            PYBIN="$1"
+        else
+            PYBIN="$(which python3 2>/dev/null)" || error "Failed to Locate PATH Python Binary"
+        fi
+        if [ -z "$PYBIN" ] || [ ! -x "$PYBIN" ]; then
+            error "No valid python binary found."
+        fi
+        "$PYBIN" -m pip list
+        ;;
+
+    # /2.16/ autux npms <d:int> (optional $2 arg)
+    -np | npms)
+        DEPTH="${1:-0}"
+        NPMPATH="$(which npm 2>/dev/null)"
+        if [ -z "$NPMPATH" ] || [ ! -x "$NPMPATH" ]; then
+            error "No Valid Npm Binary Found."
+        fi
+        "$NPMPATH" list --depth="$DEPTH" || error "Failed to Gather Nodes"
+        ;;
+
+    # /2.17/ autux gradles (expects no args)
+    -gd | gradles)
+        GRADLEBIN="$(which gradle 2>/dev/null)"
+        if [ -z "$GRADLEBIN" ] || [ ! -x "$GRADLEBIN" ]; then
+            error "No valid gradle binary found."
+        fi
+        "$GRADLEBIN" dependencies
+        ;;
+
+    # /2.18/ autux mavens <d:int> (optional $2 arg)
+    -mv | mavens)
+        shift
+        DEPTH="${1:-1}"
+        MVNBIN="$(which mvn 2>/dev/null)"
+        if [ -z "$MVNBIN" ] || [ ! -x "$MVNBIN" ]; then
+            error "No Valid Maven Binary Found"
+        fi
+        "$MVNBIN" dependency:tree -Ddepth="$DEPTH"
+        ;;
+
+    # /2.19/ autux lock (expects no args)
+    -l | lock)
+        termux-wake-lock || error "Failed to Establish Wake-Lock"
+        ;;
+
+    # /2.20/ autux unlock (expects no args)
+    -ul | unlock)
+        termux-wake-unlock || error "Failed to Establish Wake-UnLock"
+        ;;
+
+    # /2.21/ autux notify (expects $2-$3)
+    -n | notify)
+        shift
+        termux-notification --title "$1" --content "$2" || error "Failed to Create Push Notification --Title $1 --Content $2"
+        ;;
+
+    # /2.22/ autux volume (expects $2-$3)
+    -v | volume)
+        shift
+        termux-volume "$1" "$2" || error "Failed to Change Volume $1 to $2"
+        ;;
+
+    # /2.23/ autux battery (expect no args)
+    -b | battery)
+        termux-battery-status || error "Failed to Gather Battery Status"
+        ;;
+
+    # /2.24/ autux -version (expexts no args)
+    --v | version)
+        echo "$VERSION" || error "Failed to Display Autux Version Message"
+        ;;
+
+    # /2.25/ autux -help (expects no args)
+    --h | help)
+        echo "$USAGE" || error "Failed to Display Autux Quick Usage Message"
+        ;;
+
+    # /2.26/ autux wiki (expects no args)
+    --w | wiki)
+        termux-open-url 'http://github.com/RectumRaider666/Autux/wiki' || error "Failed to Open the Autux GitHub Wikis"
+        ;;
+
+    # /2.27/ Unregistered Command
+    *)
+        error "$1 is an Unrecognized Command, Try autux --h for Quick-Usage or autux --w to Open the Autux GitHub-Wikis"
+        ;;
+esac
