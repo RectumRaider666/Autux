@@ -68,19 +68,19 @@ error(){
 
 warn(){
     for txt in "$@"; do
-        echo -e "${YLW}[WARN]: $txt${R}\n"; sleep 0.5
+        echo -e "${YLW}[WARN]: $txt${R}\n"
     done
 }
 
 info(){
     for txt in "$@"; do
-        echo -e "${BLU}[INFO]: $txt${R}\n"; sleep 0.25
+        echo -e "${BLU}[INFO]: $txt${R}\n"
     done
 }
 
 okay(){
     for txt in "$@"; do
-        echo -e "${GRN}[OKAY]: $txt${R}\n"; sleep 0.25
+        echo -e "${GRN}[OKAY]: $txt${R}\n"
     done
 }
 
@@ -89,6 +89,7 @@ now(){
 }
 
 # /2.0/ The Main Logic
+[ $# -eq 0 ] && {echo "$USAGE"; exit 1}
 case $1 in
     # /2.1/ autux tap <x> <y> (expects $2-$3)
     -t | tap)
@@ -139,7 +140,7 @@ case $1 in
     # /2.8/ autux capture <d:str> (optional $2 arg)
     -cap | capture)
         shift
-        Dir="${1:-$HOME/Pictures/Screenshots}"
+        Dir="${1:-/sdcard/Pictures/Screenshots}"
         if [ ! -d "$Dir" ]; then
             mkdir -p "$Dir" || error "Failed to Create OutPut Dir"
         fi
@@ -151,7 +152,7 @@ case $1 in
     # /2.9/ autux record <d:str> (optional $2 arg)
     -rec | record)
         shift
-        Dir="${1:-$HOME/Videos/Screencasts}"
+        Dir="${1:-/sdcard/Videos/Screencasts}"
         if [ ! -d "$Dir" ]; then
             mkdir -p "$Dir" || error "Failed to Create OutPut Dir '$Dir"
         fi
@@ -161,24 +162,23 @@ case $1 in
         ;;
 
     # /2.10/ autux listen <d:str> (Expects $2 Optional Output Directory)
-# autux listen <d:str> (Expects $2 Optional Output Directory)
--lsn | 'listen')
-    shift
-    Dir="${1:-/sdcard/Recordings}"
-    adb shell mkdir -p "$Dir" || warn "Failed To Ensure Device Directory '$Dir'"
-    F="$(now).wav"
-    Dst="$Dir/$F"
-    adb shell tinycap "$Dst" &
-    lsn_pid=$!
-    echo "$lsn_pid" > "$AUTUX_SHARE_DIR/listen.pid" || error "Failed To Write Listen PID-File"
-    ;;
+    -lsn | 'listen')
+        shift
+        Dir="${1:-/sdcard/Music/Recordings}"
+            mkdir -p "$Dir" || error "Failed To Ensure Device Directory '$Dir'"
+        F="$(now).wav"
+        Dst="$Dir/$F"
+        adb shell tinycap "$Dst" &
+        lsn_pid=$!
+        echo "$lsn_pid" > "$AUTUX_SHARE_DIR/listen.pid" || error "Failed To Write Listen PID-File"
+        ;;
 
     # /2.11/ autux kill (expects $2)
     -k | kill)
         shift
         case "$1" in
             rec|record|-rec)
-                adb shell kill -l INT screenrecord
+                adb shell pkill -l INT screenrecord
                 ;;
             *)
                 pidfile="$1"
