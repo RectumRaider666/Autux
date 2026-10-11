@@ -57,4 +57,5 @@ Now instead of running one calculation per thread in a training session, we calc
 
 After researches began to utelize GPU bound work, NVDIA also realized the raw mathematical throughput a strong GPU could sustain.
 This lead to NVDIA creating GPUs with special cores called `CUDA` cores, whose firmware makes these cores purely for vectorized mathematics,
-and not for the standard graphics processing of normal GPU cores. 
+and not for the standard graphics processing of normal GPU cores.
+
