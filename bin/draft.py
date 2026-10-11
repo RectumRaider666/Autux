@@ -34,15 +34,10 @@ class PreProcess():
     def format(raw:str|Path=IMAGES_DIR, format:str="PNG"):
         """Convert all files to a target format and rename"""
         for item in tqdm(Path(raw).iterdir(), desc="Converting Images", unit="image"):
-            # Ensure its a file
             if not item.is_file():
                 continue
-            
-            # Ensure its a valid image file otherwise remove from set
             if item.suffix.lower() not in SUPPORTED_EXT:
                 continue
-        
-            # Open, Convert, Save, Delete
             try:
                 count = 0
                 with Image.open(item) as image:
