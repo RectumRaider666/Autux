@@ -7,19 +7,18 @@ from math import gcd
 import numpy as np
 import os
 
-# All supported Read & Write image Formats
-
-SUPPORTED = {[
-  {"AVIF": [".avif"]}, {"BMP": [".bmp"]}, {"DDS": [".dds"]}, {"DIB": [".dib"]}, {"EPS": [".eps"]}, {"GIF": [".gif"]},
-  {"ICNS": [".icns"]}, {"ICO": [".ico"]}, {"JPEG": [".jfif", ".jpe", ".jpeg", ".jpg"]}, {"MPO": [".mpo"]}, 
-  {"PCX": [".pcx"]}, {"PNG": [".png"]}, {"PBM": [".pbm"]}, {"PGM": [".pgm"]}, {"PPM": [".ppm"]}, {"QOI": [".qoi"]},
-  {"SGI": [".sgi"]}, {"TGA": [".tga"]}, {"TIFF": [".tif", ".tiff"]}, {"WebP": [".webp"]}, {"XBM": [".xbm"]}, {"BLP": [".blp"]},
-  {"IM": [".im"]}, {"MSP": [".msp"]}, {"SPIDER": [".spi"]}
-]}
+SUPPORTED = {
+  "AVIF": [".avif"], "BMP": [".bmp"], "DDS": [".dds"], "DIB": [".dib"], "EPS": [".eps"], "GIF": [".gif"],
+  "ICNS": [".icns"], "ICO": [".ico"], "JPEG": [".jfif", ".jpe", ".jpeg", ".jpg"], "MPO": [".mpo"], 
+  "PCX": [".pcx"], "PNG": [".png"], "PBM": [".pbm"], "PGM": [".pgm"], "PPM": [".ppm"], "QOI": [".qoi"],
+  "SGI": [".sgi"], "TGA": [".tga"], "TIFF": [".tif", ".tiff"], "WebP": [".webp"], "XBM": [".xbm"], "BLP": [".blp"],
+  "IM": [".im"], "MSP": [".msp"], "SPIDER": [".spi"]
+}
 SUPPORTED_FORMAT = list(SUPPORTED.keys())
-SUPPORTED_EXT = None
+SUPPORTED_EXT = []
 for itm in SUPPORTED.values():
-    SUPPORTED_EXT.append(itm)
+    for item in list(itm):
+        SUPPORTED_EXT.append(itm)
 
 IMAGES_DIR=os.path.join(Path.cwd(), 'images', 'raw')
 OUT_RES=os.path.join(Path.cwd(), 'images', 'training-sets', 'Resolution')
@@ -93,10 +92,14 @@ class PreProcess():
                 print(f"Error processing {item.name}: {e}")
                 continue
 
+    def common(raw:str|Path):
+        """Return the most common Aspect-Ratio and Resolution amongs a dir of images"""
+        path=Path(raw)
+
 class NeuralNetwork():
     """Store parameters and perform calculations"""
     def __init__(self, model:str="xai"):
-        name = os.path.join(Path.cwd(), "models", model, ".npz")
+        name = os.path.join(Path.cwd(), "models", f"{model}.npz")
         with np.load(Path(name)) as data:
             self.W = data["weights"]
             self.B = data["biases"]
@@ -109,7 +112,7 @@ class NeuralNetwork():
             raise ValueError("Input and neuron counts must be positive.")
         newW = np.random.randn(neuron_count, input_count) * 0.01
         newB = np.zeros(neuron_count)
-        path = os.path.join(Path.cwd(), "models", name, ".npz")
+        path = os.path.join(Path.cwd(), "models", f"{name}.npz")
         np.savez(Path(path), weights=newW, biases=newB)
         print(f"Model parameters saved to {path}")
         print("Weight matrix shape:", newW.shape)
@@ -130,7 +133,7 @@ class NeuralNetwork():
 class Trainer():
     """Prepare and execute training sessions"""
     def __init__(self, model:str="xai"):
-        name = os.path.join(Path.cwd(), "models", model, ".npz")
+        name = os.path.join(Path.cwd(), "models", f"{model}.npz")
         with np.load(Path(name)) as data:
             self.W = data["weights"]
             self.B = data["biases"]
@@ -218,3 +221,5 @@ class Trainer():
         np.savez(path, weights=W, biases=B)
         print(f"Trained model saved to {path}")
         return W, B
+
+    NeuralNetwork.new(input_count=3115008, neuron_count=1, name="xai")
